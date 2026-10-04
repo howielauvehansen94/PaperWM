@@ -165,7 +165,106 @@
                         <property name="margin_top">6</property>
                         <property name="margin_bottom">6</property>
                         <property name="column_spacing">32</property>
-                        <property name="tooltip_markup" translatable="yes">Preferred width.  Can be a percent value (e.g. &lt;i&gt;50%&lt;/i&gt;) or pixel value (e.g. &lt;i&gt;500px&lt;/i&gt;). &lt;i&gt;Note: this property is ignored for windows opened on the scratch layer.&lt;/i&gt;</property>
+                        <property name="tooltip_markup" translatable="yes">If enabled, the window will float above the tiled windows on its workspace (e.g. a picture-in-picture video player). &lt;i&gt;Note: unlike the scratch layer, the window stays on the workspace it was opened on.&lt;/i&gt;</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="focusable">False</property>
+                            <property name="hexpand">1</property>
+                            <property name="label" translatable="yes">Float above tiled windows</property>
+                            <property name="xalign">0</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSwitch" id="float">
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkGrid">
+                        <property name="focusable">False</property>
+                        <property name="margin_start">12</property>
+                        <property name="margin_end">12</property>
+                        <property name="margin_top">6</property>
+                        <property name="margin_bottom">6</property>
+                        <property name="column_spacing">32</property>
+                        <property name="tooltip_markup" translatable="yes">Horizontal position of a floating window. Can be an anchor (&lt;b&gt;left&lt;/b&gt;, &lt;b&gt;right&lt;/b&gt;, &lt;b&gt;center&lt;/b&gt;) and/or an offset in &lt;b&gt;px&lt;/b&gt; or &lt;b&gt;%&lt;/b&gt; of the workarea. For &lt;b&gt;left&lt;/b&gt;/&lt;b&gt;right&lt;/b&gt; the offset is a gap from that edge, e.g. &lt;b&gt;right-20px&lt;/b&gt; (or &lt;b&gt;right20px&lt;/b&gt;) places the window 20px from the right edge, and &lt;b&gt;left-20px&lt;/b&gt; places it 20px from the left edge. A &lt;b&gt;+&lt;/b&gt; prefix (e.g. &lt;b&gt;right+20px&lt;/b&gt;) moves the window past the edge instead. &lt;b&gt;center&lt;/b&gt; centers it, and a plain value like &lt;b&gt;100px&lt;/b&gt; places it 100px from the left edge. &lt;i&gt;Note: only applies to floating or scratch layer windows.&lt;/i&gt;</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="focusable">False</property>
+                            <property name="hexpand">1</property>
+                            <property name="label" translatable="yes">Position x</property>
+                            <property name="xalign">0</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="positionX">
+                            <property name="width_chars">16</property>
+                            <property name="max_width_chars">16</property>
+                            <property name="placeholder_text" translatable="yes">e.g. right-20px</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkGrid">
+                        <property name="focusable">False</property>
+                        <property name="margin_start">12</property>
+                        <property name="margin_end">12</property>
+                        <property name="margin_top">6</property>
+                        <property name="margin_bottom">6</property>
+                        <property name="column_spacing">32</property>
+                        <property name="tooltip_markup" translatable="yes">Vertical position of a floating window. Can be an anchor (&lt;b&gt;top&lt;/b&gt;, &lt;b&gt;bottom&lt;/b&gt;, &lt;b&gt;center&lt;/b&gt;) and/or an offset in &lt;b&gt;px&lt;/b&gt; or &lt;b&gt;%&lt;/b&gt; of the workarea. For &lt;b&gt;top&lt;/b&gt;/&lt;b&gt;bottom&lt;/b&gt; the offset is a gap from that edge, e.g. &lt;b&gt;bottom-20px&lt;/b&gt; (or &lt;b&gt;bottom20px&lt;/b&gt;) places the window 20px from the bottom edge, and &lt;b&gt;top-20px&lt;/b&gt; places it 20px below the top edge. A &lt;b&gt;+&lt;/b&gt; prefix (e.g. &lt;b&gt;top+20px&lt;/b&gt;) moves the window past the edge instead. &lt;b&gt;center&lt;/b&gt; centers it, and a plain value like &lt;b&gt;100px&lt;/b&gt; places it 100px from the top edge. &lt;i&gt;Note: only applies to floating or scratch layer windows.&lt;/i&gt;</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="focusable">False</property>
+                            <property name="hexpand">1</property>
+                            <property name="label" translatable="yes">Position y</property>
+                            <property name="xalign">0</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="positionY">
+                            <property name="width_chars">16</property>
+                            <property name="max_width_chars">16</property>
+                            <property name="placeholder_text" translatable="yes">e.g. bottom-20px</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkGrid">
+                        <property name="focusable">False</property>
+                        <property name="margin_start">12</property>
+                        <property name="margin_end">12</property>
+                        <property name="margin_top">6</property>
+                        <property name="margin_bottom">6</property>
+                        <property name="column_spacing">32</property>
+                        <property name="tooltip_markup" translatable="yes">Preferred width.  Can be a percent value (e.g. &lt;i&gt;50%&lt;/i&gt;) or pixel value (e.g. &lt;i&gt;500px&lt;/i&gt;). &lt;i&gt;Note: this property is ignored for windows opened on the scratch layer. Floating windows are resized to this width when they open.&lt;/i&gt;</property>
                         <child>
                           <object class="GtkLabel">
                             <property name="focusable">False</property>

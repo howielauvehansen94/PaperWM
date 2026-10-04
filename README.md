@@ -277,6 +277,8 @@ It's possible to set window properties using simple rules that will be applied w
 Property              | Input type                          | Input example | Description
 ----------------------|-------------------------------------|------------------|------------------
 `scratch_layer`       | Boolean                             | `true`, `false`  | if `true` window will be placed on the scratch layer.
+`float`               | Boolean                             | `true`, `false`  | if `true` window will float above the tiled windows on its workspace (e.g. a picture-in-picture video player). Unlike `scratch_layer`, the window stays on the workspace it was opened on.
+`x`, `y`              | String (anchor and/or offset with `px` or `%` unit) | `"right-20px"`, `"top-20px"`, `"center"`    | position of a floating or scratch layer window. `x` accepts the anchors `left`, `right` and `center`; `y` accepts `top`, `bottom` and `center`. The offset is a gap from the anchor edge into the workarea (`%` is relative to the monitor workarea), e.g. `x: "right-20px"` places the window 20px from the right edge and `y: "top-20px"` places it 20px below the top edge. A `+` prefix (e.g. `y: "top+20px"`) moves the window past the anchor edge instead. Without an anchor the offset is measured from the top left corner of the workarea, e.g. `x: "100px"`.
 `preferredWidth`      | String value with `%` or `px` unit         | `"50%"`, `"450px"`    | resizes the window width to the preferred width when it's created. </br>_Note<sup>1</sup>: property not applicable to windows on scratch layer._
 
 Window properties can be added using the `Winprops` tab of the PaperWM extension settings:

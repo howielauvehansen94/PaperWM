@@ -399,6 +399,69 @@ export function find_winprop(meta_window)  {
     return null;
 }
 
+/**
+   Parses a position value for the winprop `x` and `y` properties.
+
+   A position is an anchor (`left`, `right`, `top`, `bottom`, `center`) and/or
+   a signed offset with an optional unit (`px` or `%`). `%` values are
+   relative to the monitor workarea.
+
+   For the edge anchors (`left`, `right`, `top`, `bottom`) the offset is a gap
+   measured from the anchor edge into the workarea. A `-` sign (or no sign)
+   keeps the gap inside the workarea, while a `+` prefix moves the window past
+   the anchor edge (partially offscreen). For `center` (and without an anchor)
+   the offset is measured along the axis from the top left corner of the
+   workarea.
+
+   Examples (e.g. to place a picture-in-picture window in the bottom right corner):
+     x: "right-20px", y: "bottom-20px"
+   Other examples:
+     x: "left-20px"   (20px gap from the left edge)
+     y: "top-20px"    (20px gap from the top edge)
+     x: "center"      (horizontally centered)
+     x: "100px"       (100px from the left edge)
+     x: "10%"         (10% of the workarea width from the left edge)
+     y: "top+20px"    (20px past the top edge, partially offscreen)
+
+   @param {string} value - the position value to parse
+   @param {string} axis - optionally 'x' or 'y' to validate the anchor against
+   the axis (`left`/`right` for x, `top`/`bottom` for y)
+   @returns {anchor: 'start'|'end'|'center'|undefined, offset: number,
+   isPercent: boolean, explicitPlus: boolean} or null if the value can't be
+   parsed
+ */
+export function parseWinpropPosition(value, axis = undefined) {
+    if (typeof value !== 'string')
+        return null;
+    const match = value.trim().match(
+        /^(left|right|top|bottom|center)?\s*(?:([+-])?\s*(\d+(?:\.\d+)?)\s*(px|%)?)?$/);
+    if (!match)
+        return null;
+    const [, anchor, sign, number, unit] = match;
+    if (!anchor && number === undefined)
+        return null;
+
+    const anchors = { left: 'start', right: 'end', top: 'start', bottom: 'end', center: 'center' };
+    if (anchor) {
+        const validAnchors = axis === 'x'
+            ? ['left', 'right', 'center']
+            : axis === 'y' ? ['top', 'bottom', 'center'] : Object.keys(anchors);
+        if (!validAnchors.includes(anchor))
+            return null;
+    }
+
+    let offset = 0;
+    if (number !== undefined) {
+        offset = Number(sign === '-' ? `-${number}` : number);
+    }
+    return {
+        anchor: anchor ? anchors[anchor] : undefined,
+        offset,
+        isPercent: unit === '%',
+        explicitPlus: sign === '+',
+    };
+}
+
 export function defwinprop(spec) {
     // process preferredWidth - expects inputs like 50% or 400px
     if (spec.preferredWidth) {

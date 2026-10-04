@@ -17,3 +17,12 @@ defwinprop({
     wm_class: "Rofi",
     focus: true,
 });
+
+// Keep firefox's picture-in-picture window floating above the tiling,
+// in the bottom right corner of the monitor
+defwinprop({
+    title: "Picture-in-Picture",
+    float: true,
+    x: "right-20px",
+    y: "bottom-20px",
+});

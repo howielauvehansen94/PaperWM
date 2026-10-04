@@ -2,6 +2,8 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
 
+import * as Settings from './settings.js';
+
 export const WinpropsPane = GObject.registerClass({
     GTypeName: 'WinpropsPane',
     Template: GLib.uri_resolve_relative(import.meta.url, './WinpropsPane.ui', GLib.UriFlags.NONE),
@@ -105,6 +107,9 @@ export const WinpropsRow = GObject.registerClass({
         'wmClass',
         'title',
         'scratchLayer',
+        'float',
+        'positionX',
+        'positionY',
         'preferredWidth',
         'space',
         'focus',
@@ -165,15 +170,41 @@ export const WinpropsRow = GObject.registerClass({
             let isActive = this._scratchLayer.get_active();
             this.winprop.scratch_layer = isActive;
 
-            // if is active then disable the preferredWidth input
-            this._preferredWidth.set_sensitive(!isActive);
+            // scratch layer and float are mutually exclusive
+            if (isActive && this._float.get_active()) {
+                this._float.set_active(false);
+            }
 
+            this._updateOptionSensitivity();
             this.emit('changed');
         });
 
+        this._float.set_active(this.winprop.float ?? false);
+        this._float.connect('state-set', () => {
+            let isActive = this._float.get_active();
+            this.winprop.float = isActive;
+
+            // scratch layer and float are mutually exclusive
+            if (isActive && this._scratchLayer.get_active()) {
+                this._scratchLayer.set_active(false);
+            }
+
+            this._updateOptionSensitivity();
+            this.emit('changed');
+        });
+
+        this._positionX.set_text(this.winprop.x ?? '');
+        this._positionX.connect('changed', () => {
+            this._setPosition('x', this._positionX);
+        });
+
+        this._positionY.set_text(this.winprop.y ?? '');
+        this._positionY.connect('changed', () => {
+            this._setPosition('y', this._positionY);
+        });
+
         this._preferredWidth.set_text(this.winprop.preferredWidth ?? '');
-        // if scratchLayer is active then users can't edit preferredWidth
-        this._preferredWidth.set_sensitive(!this.winprop.scratch_layer ?? true);
+        this._updateOptionSensitivity();
 
         this._preferredWidth.connect('changed', () => {
             // if has value, needs to be valid (have a value or unit)
@@ -228,6 +259,43 @@ export const WinpropsRow = GObject.registerClass({
         });
 
         this._updateState();
+    }
+
+    /**
+     * Sets the `x` or `y` winprop from a position entry. The entry's text is
+     * validated with `Settings.parseWinpropPosition` and marked with the
+     * 'error' cssClass if invalid.
+     */
+    _setPosition(axis, entry) {
+        let text = entry.get_text();
+        if (!text) {
+            // having no position is valid
+            this._setError(entry, false);
+            delete this.winprop[axis];
+            this.emit('changed');
+        }
+        else if (Settings.parseWinpropPosition(text, axis)) {
+            this._setError(entry, false);
+            this.winprop[axis] = text;
+            this.emit('changed');
+        }
+        else {
+            this._setError(entry);
+        }
+    }
+
+    /**
+     * Updates the sensitivity of winprop options that only apply to either
+     * tiled or floating windows.
+     */
+    _updateOptionSensitivity() {
+        const floating = (this.winprop.scratch_layer ?? false) || (this.winprop.float ?? false);
+        // position only applies to floating or scratch layer windows
+        this._positionX.set_sensitive(floating);
+        this._positionY.set_sensitive(floating);
+        // preferredWidth applies to tiled and floating windows, but not to
+        // windows on the scratch layer
+        this._preferredWidth.set_sensitive(!(this.winprop.scratch_layer ?? false));
     }
 
     /**
@@ -300,6 +368,9 @@ export const WinpropsRow = GObject.registerClass({
     _setAccelLabel() {
         if (this.winprop.scratch_layer ?? false) {
             return 'scratch layer';
+        }
+        else if (this.winprop.float ?? false) {
+            return 'floating';
         }
         else if (this.winprop.preferredWidth ?? false) {
             return 'preferred width';

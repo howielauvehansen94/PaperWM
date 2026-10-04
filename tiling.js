@@ -3940,6 +3940,11 @@ export function add_filter(meta_window) {
     if (Scratch.isScratchWindow(meta_window)) {
         return false;
     }
+    if (isFloating(meta_window)) {
+        // Never re-tile windows that are already floating (eg. moved here
+        // through a winprop `float` rule)
+        return false;
+    }
 
     return true;
 }
@@ -3982,6 +3987,105 @@ export function add_handler(_ws, metaWindow) {
     }
     // Otherwise we're dealing with a new window, so we let `window-created`
     // handle initial positioning.
+}
+
+/**
+   Gap between an anchor edge and the window's edge on that side, in pixels.
+   A `-` or unsigned offset is a gap into the workarea; an explicit `+`
+   offset yields a negative gap, placing the window past the anchor edge
+   instead.
+ */
+function edgeGap(offset, explicitPlus) {
+    return explicitPlus ? -offset : Math.abs(offset);
+}
+
+/**
+   Computes the window coordinate on one axis from a winprop position value
+   (see `Settings.parseWinpropPosition` for the value syntax).
+
+   For the edge anchors the offset is a gap from the anchor edge measured
+   into the workarea (`-` or no sign), or past the edge with an explicit `+`.
+   For `center` (and without an anchor) the offset is measured along the axis.
+
+   @returns the absolute coordinate, or null if the value is invalid
+ */
+function computeWinpropCoordinate(spec, origin, extent, windowSize, axis) {
+    const parsed = Settings.parseWinpropPosition(spec, axis);
+    if (!parsed) {
+        console.warn("#winprops", `"${spec}" is not a valid position value. Ignoring.`);
+        return null;
+    }
+    let offset = parsed.offset;
+    if (parsed.isPercent) {
+        offset = offset / 100 * extent;
+    }
+    switch (parsed.anchor) {
+    case 'start':
+        return origin + Math.round(edgeGap(offset, parsed.explicitPlus));
+    case 'end':
+        return origin + extent - windowSize - Math.round(edgeGap(offset, parsed.explicitPlus));
+    case 'center':
+        return origin + Math.round((extent - windowSize) / 2 + offset);
+    default:
+        // no anchor: offset measured from the start edge
+        return origin + Math.round(offset);
+    }
+}
+
+/**
+   Resizes a floating window to its `preferredWidth` winprop value (px or %
+   of the monitor workarea). Tiled windows get preferredWidth applied through
+   the space layout instead (see `layoutColumnSimple`).
+ */
+function resizeToPreferredWidth(metaWindow, winprop) {
+    const prop = winprop?.preferredWidth;
+    if (!prop)
+        return;
+    if (prop.value <= 0) {
+        console.warn("#winprops", "invalid preferredWidth value");
+        return;
+    }
+    let targetWidth;
+    if (prop.unit === 'px') {
+        targetWidth = prop.value;
+    }
+    else if (prop.unit === '%') {
+        const space = spaces.spaceOfWindow(metaWindow);
+        const workArea = Main.layoutManager.getWorkAreaForMonitor(space.monitor.index);
+        targetWidth = Math.floor(workArea.width * Math.min(prop.value / 100.0, 1.0));
+    }
+    else {
+        console.warn("#winprops", `invalid preferredWidth unit: '${prop.unit}' (should be 'px' or '%')`);
+        return;
+    }
+    const frame = metaWindow.get_frame_rect();
+    if (frame.width === targetWidth)
+        return;
+    metaWindow.move_resize_frame(true, frame.x, frame.y, targetWidth, frame.height);
+}
+
+/**
+   Positions a window according to the `x` and `y` winprop values. Only
+   meaningful for windows not managed by the tiling (floating or scratch
+   layer windows).
+ */
+function positionFromWinprop(metaWindow, winprop) {
+    if (winprop.x === undefined && winprop.y === undefined)
+        return;
+    const space = spaces.spaceOfWindow(metaWindow);
+    const workArea = Main.layoutManager.getWorkAreaForMonitor(space.monitor.index);
+    const frame = metaWindow.get_frame_rect();
+    let x = frame.x;
+    let y = frame.y;
+    if (winprop.x !== undefined) {
+        x = computeWinpropCoordinate(winprop.x, workArea.x, workArea.width, frame.width, 'x') ?? x;
+    }
+    if (winprop.y !== undefined) {
+        y = computeWinpropCoordinate(winprop.y, workArea.y, workArea.height, frame.height, 'y') ?? y;
+    }
+    if (x !== frame.x || y !== frame.y) {
+        metaWindow.move_frame(true, x, y);
+    }
 }
 
 /**
@@ -4031,6 +4135,7 @@ export function insertWindow(metaWindow, options = {}) {
         }
 
         let addToScratch = false;
+        let addToFloating = false;
 
         let winprop = Settings.find_winprop(metaWindow);
         if (winprop) {
@@ -4040,6 +4145,10 @@ export function insertWindow(metaWindow, options = {}) {
             if (winprop.scratch_layer) {
                 console.debug("#winprops", `Move ${metaWindow?.title} to scratch`);
                 addToScratch = true;
+            }
+            else if (winprop.float) {
+                console.debug("#winprops", `Keep ${metaWindow?.title} floating`);
+                addToFloating = true;
             }
 
             // pass winprop properties to metaWindow
@@ -4064,7 +4173,32 @@ export function insertWindow(metaWindow, options = {}) {
         if (addToScratch) {
             connectSizeChanged();
             Scratch.makeScratch(metaWindow);
+            positionFromWinprop(metaWindow, winprop);
             activateWindowAfterRendered(actor, metaWindow);
+            return;
+        }
+
+        if (addToFloating) {
+            connectSizeChanged();
+            const space = spaces.spaceOfWindow(metaWindow);
+            space.addFloating(metaWindow);
+            // Make sure the window is on the correct monitor
+            metaWindow.move_to_monitor(space.monitor.index);
+            // Keep the window above the tiled windows
+            metaWindow.make_above();
+            resizeToPreferredWidth(metaWindow, winprop);
+            positionFromWinprop(metaWindow, winprop);
+            // On Wayland the resize happens asynchronously, so reposition
+            // once the new size has taken effect
+            if (winprop.x !== undefined || winprop.y !== undefined) {
+                signals.connectOneShot(metaWindow, 'size-changed', () =>
+                    positionFromWinprop(metaWindow, winprop));
+            }
+            showWindow(metaWindow);
+            // focus by default, unless the winprop explicitly opts out
+            if (winprop.focus !== false) {
+                activateWindowAfterRendered(actor, metaWindow);
+            }
             return;
         }
 
